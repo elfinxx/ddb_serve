@@ -13,12 +13,12 @@ class DDBServiceSpec extends PlaySpec with GuiceOneAppPerTest with Injecting {
     }
 
     "get dolls by search query" in {
-      val dolls = DDBService.findDollByName("G11")
+      val dolls = DDBService.findDollsByName("G11")
       dolls.map(d => println(d.name))
 
       dolls.size must be > 0
 
-      val dolls2 = DDBService.findDollByName("댕댕")
+      val dolls2 = DDBService.findDollsByName("댕댕")
       dolls2.map(d => println(d.name))
 
       dolls2.size must be > 0

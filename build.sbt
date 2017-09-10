@@ -25,7 +25,6 @@ libraryDependencies += "aa.mango" %% "mango-core" % "0.4.7"
 libraryDependencies += "com.github.tototoshi" %% "scala-csv" % "1.3.4"
 //libraryDependencies += "org.seleniumhq.selenium" %% "selenium-java" % "3.5.3"
 libraryDependencies += "net.ruippeixotog" %% "scala-scraper" % "2.0.0"
-
 // compile 'org.seleniumhq.selenium:selenium-java:3.5.3'
 
 

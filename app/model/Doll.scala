@@ -15,6 +15,12 @@ case class Doll(
   }
 }
 
+object Doll{
+  def empty() = {
+    Doll("미상", 0, Seq(), Skill("", "", "", "", ""), "", 0, "")
+  }
+}
+
 case class Skill(
   name: String,
   effect: String,

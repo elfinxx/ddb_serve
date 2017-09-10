@@ -3,10 +3,11 @@ package controllers
 import javax.inject._
 
 import akka.actor.ActorSystem
-import play.api.libs.json.{JsValue, Json}
+import play.api.libs.json.{JsSuccess, JsValue, Json}
 import play.api.mvc._
 import services.DDBService
 import aa.mango.json.toJson
+import model.Doll
 
 import scala.concurrent.duration._
 import scala.concurrent.{ExecutionContext, Future, Promise}
@@ -39,9 +40,22 @@ class AsyncController @Inject()(cc: ControllerComponents, actorSystem: ActorSyst
    * will be called when the application receives a `GET` request with
    * a path of `/message`.
    */
-  def list(name: String) = Action.async {
-    getDollList(name, 0.second).map { msg =>
-      Ok(msg)
+  def list() = Action.async { r =>
+    val requestVal = r.body.asJson.get
+
+    (requestVal \ "name").validate[String] match {
+      case JsSuccess(name, _) =>
+        getDollList(name, 0.second).map { msg =>
+          Ok(msg)
+        }
+
+      case _ =>
+        Future.successful(Ok(Json.parse(
+          """
+            |{
+            | "text":"json structure error"
+            |}
+          """.stripMargin)))
     }
   }
 
@@ -51,13 +65,23 @@ class AsyncController @Inject()(cc: ControllerComponents, actorSystem: ActorSyst
     }
   }
 
+  def simpleResponse() = Action.async {
+    Future.successful(Ok(Json.parse(
+      """
+        |{
+        | "text":"댕댕잉!",
+        | "imageUrl":"http://k.kakaocdn.net/dn/FZJ1b//btqhbJhe4yF//s3KEdDbB7LKJeUa5YTOaVK/original.jpg"
+        |}
+      """.stripMargin)))
+  }
+
   private def getDollListByTime(time: String, delayTime: FiniteDuration): Future[JsValue] = {
     val dolls = DDBService.findDollsByMakingTime(time)
 
     val promise: Promise[JsValue] = Promise[JsValue]()
     actorSystem.scheduler.scheduleOnce(delayTime) {
 
-      promise.success(Json.parse(toJson(dolls.head)))
+      promise.success(Json.parse(toJson(dolls.headOption.getOrElse(Doll.empty()))))
 
     }(actorSystem.dispatcher) // run scheduled tasks using the actor system's dispatcher
     promise.future
@@ -69,7 +93,11 @@ class AsyncController @Inject()(cc: ControllerComponents, actorSystem: ActorSyst
     val promise: Promise[JsValue] = Promise[JsValue]()
     actorSystem.scheduler.scheduleOnce(delayTime) {
 
-      promise.success(Json.parse(toJson(dolls.head)))
+      if (dolls.length > 9) {
+        promise.success(Json.parse(toJson(dolls.slice(0, 9))))
+      } else {
+        promise.success(Json.parse(toJson(dolls)))
+      }
 
     }(actorSystem.dispatcher) // run scheduled tasks using the actor system's dispatcher
     promise.future
