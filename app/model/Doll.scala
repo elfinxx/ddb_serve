@@ -7,7 +7,8 @@ case class Doll(
   skill: Skill,
   photo: String,
   no: Int,
-  makingTime: String
+  makingTime: String,
+  summary: String = ""
 ){
   override
   def toString: String = {

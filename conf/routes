@@ -4,16 +4,19 @@
 # ~~~~
 
 # An example controller showing a sample home page
-GET        /                      controllers.HomeController.index
+GET         /                      controllers.HomeController.index
 # An example controller showing how to use dependency injection
-GET        /count                 controllers.CountController.count
+GET         /count                 controllers.CountController.count
 
 POST        /list                  controllers.AsyncController.list
 
-GET        /findByTime            controllers.AsyncController.findByTime(time: String ?= "")
+POST        /findByName            controllers.AsyncController.findByName
+
+
+GET         /findByTime            controllers.AsyncController.findByTime(time: String ?= "")
 POST        /simpleResponse        controllers.AsyncController.simpleResponse()
 
 # Map static resources from the /public folder to the /assets URL path
-GET        /assets/*file          controllers.Assets.versioned(path="/public", file: Asset)
+GET         /assets/*file          controllers.Assets.versioned(path="/public", file: Asset)
 
       

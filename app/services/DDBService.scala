@@ -9,7 +9,7 @@ import scala.util.Try
 object DDBService {
   val source: BufferedSource = Source.fromURL(getClass.getClassLoader.getResource("dolls.csv"))
   val reader: CSVReader = CSVReader.open(source)
-  val dolls: List[Doll] = reader.allWithHeaders().map{ i =>
+  val dolls: List[Doll] = reader.allWithHeaders().map { i =>
     val skill = Skill(
       i.getOrElse("skill_name", ""),
       i.getOrElse("skill_effect", ""),
@@ -25,8 +25,8 @@ object DDBService {
       skill,
       i.getOrElse("image_url", "http://k.kakaocdn.net/dn/FZJ1b//btqhbJhe4yF//s3KEdDbB7LKJeUa5YTOaVK/original.jpg"),
       Try(i.getOrElse("no", "0").toInt).getOrElse(0),
-      i.getOrElse("makingTime", "")
-
+      i.getOrElse("makingTime", ""),
+      i.getOrElse("star", "0") + "성, 별명: " + i.getOrElse("name_alt", "") + "\n제조 시간: " + i.getOrElse("makingTime", "") + ", 관련 태그: " + i.getOrElse("extra", "") + "\n" + ""
     )
   }
 
@@ -34,8 +34,12 @@ object DDBService {
     dolls.filter(d => d.name.toLowerCase.contains(query.toLowerCase) || d.tags.exists(t => t.contains(query.toLowerCase)))
   }
 
+  def findDollByName(query: String): Doll = {
+    dolls.find(d => d.name.toLowerCase.contains(query.toLowerCase) || d.tags.exists(t => t.contains(query.toLowerCase))).getOrElse(Doll.empty())
+  }
+
   def findDollsByMakingTime(timeQuery: String): Seq[Doll] = {
-    dolls.filter{ x =>
+    dolls.filter { x =>
       x.makingTime.replace(":", "") == timeQuery.replace(":", "")
     }
   }

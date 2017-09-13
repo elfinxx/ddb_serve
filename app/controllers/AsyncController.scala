@@ -41,11 +41,45 @@ class AsyncController @Inject()(cc: ControllerComponents, actorSystem: ActorSyst
    * a path of `/message`.
    */
   def list() = Action.async { r =>
-    val requestVal = r.body.asJson.get
+    val convertedBody: JsValue = r.body match {
+      case b: AnyContentAsRaw =>
+        Json.parse(b.asRaw.get.asBytes().get.decodeString("UTF-8"))
+      case b: AnyContentAsJson  =>
+        b.asJson.get
+    }
 
-    (requestVal \ "name").validate[String] match {
+    (convertedBody \ "action" \ "params" \ "name").validate[String] match {
       case JsSuccess(name, _) =>
         getDollList(name, 0.second).map { msg =>
+          Ok(msg)
+        }
+
+      case _ =>
+        Future.successful(Ok(Json.parse(
+          """
+            |{
+            | "text":"json structure error"
+            |}
+          """.stripMargin)))
+    }
+  }
+
+  def findByName() =  Action.async(parse.anyContent) { r: Request[AnyContent] =>
+
+    val convertedBody: JsValue = r.body match {
+      case b: AnyContentAsRaw =>
+        Json.parse(b.asRaw.get.asBytes().get.decodeString("UTF-8"))
+      case b: AnyContentAsJson  =>
+        b.asJson.get
+    }
+
+    println("REQUIEST -> " + convertedBody)
+    (convertedBody \ "action" \ "params" \ "name").validate[String] match {
+//    (convertedBody \ "name").validate[String] match {
+      case JsSuccess(name, _) =>
+        println("pRAMANAME -> " + name)
+        getDollByName(name, 0.second).map { msg =>
+          println("MSG -> " + msg)
           Ok(msg)
         }
 
@@ -94,10 +128,22 @@ class AsyncController @Inject()(cc: ControllerComponents, actorSystem: ActorSyst
     actorSystem.scheduler.scheduleOnce(delayTime) {
 
       if (dolls.length > 9) {
-        promise.success(Json.parse(toJson(dolls.slice(0, 9))))
+        promise.success(Json.parse(toJson(Map("result_data" -> dolls.slice(0, 9)))))
       } else {
-        promise.success(Json.parse(toJson(dolls)))
+        promise.success(Json.parse(toJson(Map("result_data" -> dolls))))
       }
+
+    }(actorSystem.dispatcher) // run scheduled tasks using the actor system's dispatcher
+    promise.future
+  }
+
+  private def getDollByName(name: String, delayTime: FiniteDuration): Future[JsValue] = {
+    val doll = DDBService.findDollByName(name)
+
+    val promise: Promise[JsValue] = Promise[JsValue]()
+    actorSystem.scheduler.scheduleOnce(delayTime) {
+
+      promise.success(Json.parse(toJson(doll)))
 
     }(actorSystem.dispatcher) // run scheduled tasks using the actor system's dispatcher
     promise.future
