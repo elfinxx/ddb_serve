@@ -48,14 +48,7 @@ class AsyncController @Inject()(cc: ControllerComponents, actorSystem: ActorSyst
    * a path of `/message`.
    */
   def getDolls() = Action.async { r =>
-    val convertedBody: JsValue = r.body match {
-      case b: AnyContentAsRaw =>
-        Json.parse(b.asRaw.get.asBytes().get.decodeString("UTF-8"))
-      case b: AnyContentAsJson  =>
-        b.asJson.get
-    }
-
-    (convertedBody \ "action" \ "params" \ "name").validate[String] match {
+    (getJsonBodyFrom(r) \ "action" \ "params" \ "name").validate[String] match {
       case JsSuccess(name, _) =>
         getAllDolls(name, 0.second).map { msg =>
           Ok(msg)
@@ -68,14 +61,7 @@ class AsyncController @Inject()(cc: ControllerComponents, actorSystem: ActorSyst
 
   def findDollsByName() = Action.async(parse.anyContent) { r: Request[AnyContent] =>
 
-    val convertedBody: JsValue = r.body match {
-      case b: AnyContentAsRaw =>
-        Json.parse(b.asRaw.get.asBytes().get.decodeString("UTF-8"))
-      case b: AnyContentAsJson  =>
-        b.asJson.get
-    }
-
-    (convertedBody \ "action" \ "params" \ "name").validate[String] match {
+    (getJsonBodyFrom(r) \ "action" \ "params" \ "name").validate[String] match {
       case JsSuccess(name, _) =>
         getDollByName(name, 0.second).map { msg =>
           Ok(msg)
@@ -93,16 +79,21 @@ class AsyncController @Inject()(cc: ControllerComponents, actorSystem: ActorSyst
   }
 
   def findEquipmentsByName() = Action.async(parse.anyContent) { r: Request[AnyContent] =>
-    val convertedBody: JsValue = r.body match {
-      case b: AnyContentAsRaw =>
-        Json.parse(b.asRaw.get.asBytes().get.decodeString("UTF-8"))
-      case b: AnyContentAsJson  =>
-        b.asJson.get
-    }
-
-    (convertedBody \ "action" \ "params" \ "name").validate[String] match {
+    (getJsonBodyFrom(r) \ "action" \ "params" \ "name").validate[String] match {
       case JsSuccess(name, _) =>
         getEquipmentsByName(name, 0.second).map { msg =>
+          Ok(msg)
+        }
+
+      case _ =>
+        eventualErrorResult
+    }
+  }
+
+  def findEquipmentsByTime() = Action.async(parse.anyContent) { r: Request[AnyContent] =>
+    (getJsonBodyFrom(r) \ "action" \ "params" \ "time").validate[String] match {
+      case JsSuccess(name, _) =>
+        getEquipmentsByTime(name, 0.second).map { msg =>
           Ok(msg)
         }
 
@@ -119,6 +110,15 @@ class AsyncController @Inject()(cc: ControllerComponents, actorSystem: ActorSyst
         | "imageUrl":"http://k.kakaocdn.net/dn/FZJ1b//btqhbJhe4yF//s3KEdDbB7LKJeUa5YTOaVK/original.jpg"
         |}
       """.stripMargin)))
+  }
+
+  private def getJsonBodyFrom(r: Request[AnyContent]) = {
+    r.body match {
+      case b: AnyContentAsRaw =>
+        Json.parse(b.asRaw.get.asBytes().get.decodeString("UTF-8"))
+      case b: AnyContentAsJson =>
+        b.asJson.get
+    }
   }
 
   private def getDollsByTime(time: String, delayTime: FiniteDuration): Future[JsValue] = {
@@ -163,6 +163,18 @@ class AsyncController @Inject()(cc: ControllerComponents, actorSystem: ActorSyst
 
   private def getEquipmentsByName(name: String, delayTime: FiniteDuration): Future[JsValue] = {
     val eqs = DDBService.findEquipmentsByName(name)
+
+    val promise: Promise[JsValue] = Promise[JsValue]()
+    actorSystem.scheduler.scheduleOnce(delayTime) {
+
+      promise.success(Json.parse(toJson(eqs)))
+
+    }(actorSystem.dispatcher) // run scheduled tasks using the actor system's dispatcher
+    promise.future
+  }
+
+  private def getEquipmentsByTime(time: String, delayTime: FiniteDuration): Future[JsValue] = {
+    val eqs = DDBService.findEquipmentsByTime(time)
 
     val promise: Promise[JsValue] = Promise[JsValue]()
     actorSystem.scheduler.scheduleOnce(delayTime) {

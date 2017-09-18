@@ -34,9 +34,7 @@ object DDBService {
   dollSource.close()
 
   val eqSource: BufferedSource = Source.fromURL(getClass.getClassLoader.getResource("eq.csv"))
-  println(eqSource)
   val eqReader: CSVReader = CSVReader.open(eqSource)
-  println(eqReader)
   val eqs: List[Equipment] = eqReader.allWithHeaders().map { x =>
     println(x)
     Equipment(
@@ -49,7 +47,6 @@ object DDBService {
 
 
   def findDollsByName(query: String): Seq[Doll] = {
-    println("Total dolls -> " + dolls.length)
     dolls.filter(d => d.name.toLowerCase.contains(query.toLowerCase) || d.tags.exists(t => t.contains(query.toLowerCase)))
   }
 
@@ -64,8 +61,10 @@ object DDBService {
   }
 
   def findEquipmentsByName(query: String): Seq[Equipment] = {
-    println("QUERY -> " + query)
-    println("eqs -> " + eqs)
-    eqs.filter( x => x.name.toLowerCase.contains(query.toLowerCase()))
+    eqs.filter( x => x.name.toLowerCase.contains(query.toLowerCase()) || x.`type`.toLowerCase.contains(query.toLowerCase()))
+  }
+
+  def findEquipmentsByTime(query: String): Seq[Equipment] = {
+    eqs.filter( x => x.makingTime.replace(":", "") == query.replace(":", ""))
   }
 }

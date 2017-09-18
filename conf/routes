@@ -13,6 +13,7 @@ POST        /findByName            controllers.AsyncController.findDollsByName
 GET         /findByTime            controllers.AsyncController.findDollsByTime(time: String ?= "")
 
 POST        /findEqByName           controllers.AsyncController.findEquipmentsByName
+POST        /findEqByTime           controllers.AsyncController.findEquipmentsByTime
 
 POST        /simpleResponse        controllers.AsyncController.simpleResponse()
 
